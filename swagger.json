@@ -21,6 +21,39 @@
           "in": "header"
       }
     },
+    "definitions": {
+      "Pet": {
+        "required": [
+          "login",
+          "password",
+          "enable",
+          "balance",
+          "email"
+        ],
+        "properties": {
+          "login": {
+            "type": "string",
+            "example": "doggie"
+          },
+          "password": {
+            "type": "string",
+            "example": "asd"
+          },
+          "enable": {
+            "type": "bool",
+            "example": true
+          },
+          "balance": {
+            "type": "float",
+            "example": "1000"
+          },
+          "email": {
+            "type": "string",
+            "example": "name@gmail.com"
+          }
+        }
+      }
+    },
     "paths": {
       "/.version": {
         "get": {
@@ -76,6 +109,30 @@
           "produces": [
             "application/json"
           ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/quotes/{symbol}": {
+        "get": {
+          "security": [
+            {"Bearer": []}
+          ],
+          "summary": "Get symbol value.",
+          "produces": [
+            "application/json"
+          ],
           "parameters":[
             {
               "name":"symbol",
@@ -108,6 +165,39 @@
           "summary": "Get account info.",
           "produces": [
             "application/json"
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "security": [
+            {"Bearer": []}
+          ],
+          "summary": "Get account info.",
+          "produces": [
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Pet object that needs to be added to the store",
+              "required": false,
+              "schema": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
           ],
           "responses": {
             "200": {
