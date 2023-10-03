@@ -1,0 +1,5 @@
+flask
+rauth
+pyjwt
+
+"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoibWFuYWdlcl9pZCJ9.76dWrGShTg6HSs1l-zY4myNko-f3e8s9uLeucwKIvz8"

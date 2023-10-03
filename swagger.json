@@ -1,0 +1,119 @@
+{
+    "swagger": "2.0",
+    "info": {
+      "title": "Sample exchnage API",
+      "description": "A sample exchange api",
+      "version": "1.0"
+    },
+    "schemes": [
+      "http"
+    ],
+    "consumes": [
+      "application/json"
+    ],
+    "produces": [
+      "application/json"
+    ],
+    "securityDefinitions": {
+      "Bearer": {
+          "type": "apiKey",
+          "name": "Authorization",
+          "in": "header"
+      }
+    },
+    "paths": {
+      "/.version": {
+        "get": {
+          "security": [
+            {"Bearer": []}
+          ],
+          "summary": "get verions.",
+          "produces": [
+            "application/json"
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/oauth2/token": {
+        "get": {
+          "summary": "Generate bearer token.",
+          "produces": [
+            "application/json"
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/symbols/": {
+        "get": {
+          "security": [
+            {"Bearer": []}
+          ],
+          "summary": "Get symbol value.",
+          "produces": [
+            "application/json"
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/accounts/": {
+        "get": {
+          "security": [
+            {"Bearer": []}
+          ],
+          "summary": "Get account info.",
+          "produces": [
+            "application/json"
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+}
