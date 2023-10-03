@@ -76,6 +76,15 @@
           "produces": [
             "application/json"
           ],
+          "parameters":[
+            {
+              "name":"symbol",
+              "in":"path",
+              "description":"The symbol that needs to be fetched",
+              "required":true,
+              "type":"string"
+            }
+          ],
           "responses": {
             "200": {
               "description": "Successful response.",
