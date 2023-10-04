@@ -22,7 +22,7 @@
       }
     },
     "definitions": {
-      "Pet": {
+      "Account": {
         "required": [
           "login",
           "password",
@@ -40,16 +40,42 @@
             "example": "asd"
           },
           "enable": {
-            "type": "bool",
+            "type": "boolean",
             "example": true
           },
           "balance": {
-            "type": "float",
+            "type": "integer",
             "example": "1000"
           },
           "email": {
             "type": "string",
             "example": "name@gmail.com"
+          }
+        }
+      },
+      "Trade": {
+        "required": [
+          "login",
+          "symbol",
+          "volume",
+          "operation"
+        ],
+        "properties": {
+          "login": {
+            "type": "string",
+            "example": "name"
+          },
+          "symbol": {
+            "type": "string",
+            "example": "BTCUSD"
+          },
+          "volume": {
+            "type": "float",
+            "example": "0.0001"
+          },
+          "operation": {
+            "type": "string",
+            "example": "buy"
           }
         }
       }
@@ -184,7 +210,7 @@
           "security": [
             {"Bearer": []}
           ],
-          "summary": "Get account info.",
+          "summary": "create account.",
           "produces": [
             "application/json"
           ],
@@ -212,7 +238,75 @@
               }
             }
           }
+        },
+        "put": {
+          "security": [
+            {"Bearer": []}
+          ],
+          "summary": "update account info.",
+          "produces": [
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Account data",
+              "required": false,
+              "schema": {
+                "$ref": "#/definitions/Account"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+    },
+    "/trades/": {
+      "post": {
+        "security": [
+          {"Bearer": []}
+        ],
+        "summary": "create a trade order.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Trade object",
+            "required": false,
+            "schema": {
+              "$ref": "#/definitions/Trade"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
       }
     }
+  }
 }

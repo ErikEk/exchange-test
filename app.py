@@ -11,9 +11,9 @@ import random
 
 # Load database
 db = TinyDB('./db.json')
-db.truncate()
 Prices = Query()
 Accounts = Query()
+Orders = Query()
 
 # insert test data...
 prices =  [
@@ -35,11 +35,14 @@ prices_table.insert_multiple(prices)
 accounts_table.insert_multiple(accounts)
 
 def update_prices():
+    # Set random prices.
     prices_table = db.table('prices')
     eurusd = random.randint(104, 106) / 100
     btcusd = random.randint(24000, 30000)
     prices_table.update({'price': eurusd},Prices.symbol == 'EURUSD')
     prices_table.update({'price': btcusd},Prices.symbol == 'BTCUSD')
+
+
 
 app = Flask(__name__)
 api = Api(app)
@@ -117,7 +120,7 @@ def get_symbols():
 @app.route("/quotes/<string:symbol>/",methods=['GET'])
 #@token_required
 def get_quotes(symbol):
-    symbol = db.get(Prices.symbol == symbol)
+    symbol = prices_table.get(Prices.symbol == symbol)
     return jsonify([
          {
             "symbol": symbol['symbol'],
@@ -136,22 +139,84 @@ def get_accounts():
 @app.route("/accounts/",methods=['POST'])
 #@token_required
 def post_accounts():
-    accounts = db.table("accounts")
     account = request.json
-    print(account)
-    #accounts.insert(acount)
+    # Make sure unique login.
+    if accounts_table.search(Accounts.login == account["login"]):
+        return jsonify({
+            "message": "account with same name already exists",
+        })
+    
+    accounts_table.insert(account)
     return jsonify({
         "message": "successfully retrieved user profile",
         "data": account
     })
 
+@app.route("/accounts/",methods=['PUT'])
+#@token_required
+def put_accounts():
+    account = request.json
+    login = account['login']
 
-@app.route("/users/", methods=["GET"])
-@token_required
-def get_current_user(current_user):
+    # Make sure login account exists.
+    if not accounts_table.search(Accounts.login == login):
+        return jsonify({
+            "message": "account not found",
+        })
+    
+    accounts_table.update({'password': account['password'],
+                           'enable': account['enable'],
+                           'email': account['email'],
+                           'balance': account['balance']},
+                           Accounts.login == login)
     return jsonify({
-        "message": "successfully retrieved user profile",
-        "data": current_user
+        "message": "successfully updated account",
+        "data": account
+    })
+
+
+@app.route("/trades/",methods=['POST'])
+#@token_required
+def post_trades():
+    order = request.json
+
+
+    accounts = accounts_table.search(Accounts.login == order['login'])
+    # Make sure login account exists.
+    if len(accounts) < 1:
+        return jsonify({
+            "message": "account not found",
+        })
+    account = accounts[0]
+        
+
+    if order['operation'] == 'buy':
+        symbol = prices_table.get(Prices.symbol == order['symbol'])
+        print(symbol['price'])
+        order_size = order['volume']*symbol['price']
+
+        # Check if enough balance on account
+        if account['balance'] < order_size:
+            return jsonify({
+                "message": "not enough balance",
+            })
+        print(f"Bought {order_size} {order['symbol']}!!")
+
+        new_balance = account['balance']-order_size
+        
+        accounts_table.update({'balance': new_balance},
+                            Accounts.login == account['login'])
+        account['balance'] = new_balance
+        return jsonify({
+            "message": "successfully updated account",
+            "account": account
+        })
+
+        
+
+    return jsonify({
+        "message": "successfully added a trade entry",
+        "data": order
     })
 
 @app.route("/users/", methods=["PUT"])
