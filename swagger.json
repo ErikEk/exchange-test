@@ -63,7 +63,7 @@
         "properties": {
           "login": {
             "type": "string",
-            "example": "name"
+            "example": "name1"
           },
           "symbol": {
             "type": "string",
@@ -291,6 +291,39 @@
             "schema": {
               "$ref": "#/definitions/Trade"
             }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trades/close/{id}": {
+      "post": {
+        "security": [
+          {"Bearer": []}
+        ],
+        "summary": "Close trade.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters":[
+          {
+            "name":"id",
+            "in":"path",
+            "description":"The trade id",
+            "required":true,
+            "type":"string"
           }
         ],
         "responses": {

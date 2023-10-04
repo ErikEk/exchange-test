@@ -7,7 +7,7 @@ import os
 from auth_middleware import token_required
 from tinydb import TinyDB, Query
 from apscheduler.schedulers.background import BackgroundScheduler
-import random 
+import random
 import uuid
 
 # Load database
@@ -45,8 +45,7 @@ def update_prices():
     prices_table.update({'price': eurusd},Prices.symbol == 'EURUSD')
     prices_table.update({'price': btcusd},Prices.symbol == 'BTCUSD')
 
-
-
+# Initiate the api instance
 app = Flask(__name__)
 api = Api(app)
 
@@ -56,7 +55,7 @@ with app.app_context():
     scheduler.add_job(update_prices, 'interval', seconds=1)
     scheduler.start()
 
-SECRET_KEY = os.environ.get('SECRET_KEY') or 'set secret message'
+SECRET_KEY = os.environ.get('SECRET_KEY') or 'set secret message!'
 print(SECRET_KEY)
 app.config['SECRET_KEY'] = SECRET_KEY
 app.config['API_VERSION'] = "0.1"
@@ -96,17 +95,17 @@ def get_oauth2token():
             algorithm="HS256"
         )
         return {
-            "message": "Successfully fetched auth token",
+            "message": "Successfully fetched manager auth token",
             "token": token
         }
     except Exception as e:
                 return {
-                    "error": "Something went wrong",
+                    "error": "cound not fetch manager auth token",
                     "message": str(e)
                 }, 500
 
 @app.route("/symbols/",methods=['GET'])
-#@token_required
+@token_required
 def get_symbols():
 
     return jsonify([
@@ -121,26 +120,25 @@ def get_symbols():
     ])
 
 @app.route("/quotes/<string:symbol>/",methods=['GET'])
-#@token_required
+@token_required
 def get_quotes(symbol):
     symbol = prices_table.get(Prices.symbol == symbol)
     return jsonify([
          {
             "symbol": symbol['symbol'],
-            "ask": symbol['price']*1.01, # ask price 1% more expensive.
+            "ask": symbol['price']*1.01, # asking price 1% above bid.
             "bid": symbol['price'],
          },
     ])
 
-
 @app.route("/accounts/",methods=['GET'])
-#@token_required
+@token_required
 def get_accounts():
     accounts = db.table("accounts")
     return jsonify(accounts.all())
 
 @app.route("/accounts/",methods=['POST'])
-#@token_required
+@token_required
 def post_accounts():
     account = request.json
     # Make sure unique login.
@@ -156,7 +154,7 @@ def post_accounts():
     })
 
 @app.route("/accounts/",methods=['PUT'])
-#@token_required
+@token_required
 def put_accounts():
     account = request.json
     login = account['login']
@@ -164,7 +162,7 @@ def put_accounts():
     # Make sure login account exists.
     if not accounts_table.search(Accounts.login == login):
         return jsonify({
-            "message": "account not found",
+            "message": "account was not found",
         }), 500
     
     accounts_table.update({'password': account['password'],
@@ -176,7 +174,6 @@ def put_accounts():
         "message": "successfully updated account",
         "data": account
     })
-
 
 @app.route("/trades/",methods=['POST'])
 #@token_required
@@ -192,12 +189,14 @@ def post_trades():
         })
     account = accounts[0]
 
-    if order['operation'] == 'buy':
-        symbol = prices_table.get(Prices.symbol == order['symbol'])
-        print(symbol['price'])
-        order_size = order['volume']*symbol['price']
+    symbol = prices_table.get(Prices.symbol == order['symbol'])
 
-        # Check if enough balance on account
+    if order['operation'] == 'buy':
+
+        # Here we would take a 1% cut from the spread.
+        order_size = order['volume']*symbol['price']*1.01
+
+        # Check if there is enough balance on the account
         if account['balance'] < order_size:
             return jsonify({
                 "message": "not enough balance",
@@ -210,7 +209,8 @@ def post_trades():
                             Accounts.login == account['login'])
         account['balance'] = new_balance
 
-        order.update({'id': str(uuid.uuid4())}) # Check if id is unique.
+        # Assign unique id. TODO: Check if id really is unique.
+        order.update({'id': str(uuid.uuid4())})
 
         trades_table.insert(order)
 
@@ -218,7 +218,53 @@ def post_trades():
             "message": "successfully updated a trade",
             "trade": order
         })
+    elif order['operation'] == 'sell':
+        trades = trades_table.search((Trade.login == order['login']) & (Trade.symbol == order['symbol']))
+        if len(trades) < 1:
+            return jsonify({
+                "message": "could not find any trades",
+            })
+        print(trades)
 
     return jsonify({
-        "message": "no trades"
+        "message": "no trade done"
     })
+
+
+@app.route("/trades/close/<string:id>",methods=['POST'])
+#@token_required
+def post_trades_close(id):
+
+    trades = trades_table.search(Trade.id == id)
+    if len(trades) < 1:
+        return jsonify({
+            "message": "trade id not found",
+        })
+    trade = trades[0]
+
+    # Put in function
+    accounts = accounts_table.search(Accounts.login == trade['login'])
+    # Make sure account exists.
+    if len(accounts) < 1:
+        return jsonify({
+            "message": "account not found",
+        })
+    account = accounts[0]
+
+    print(trade)
+    if trade['operation'] == 'buy':
+        price = prices_table.get(Prices.symbol == trade['symbol'])
+        print(price)
+        amount_sold = price['price']*trade['volume']
+        new_balance = account['balance'] + amount_sold
+        accounts_table.update({'balance': new_balance},
+                            Accounts.login == trade['login'])
+
+    # Remove trade entry from database for simplicity.
+    ok = trades_table.remove(Trade.id == id)
+
+    return jsonify({
+            "message": "successfully closed a trade",
+            "trade": trade
+        })
+
