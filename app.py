@@ -8,12 +8,13 @@ from auth_middleware import token_required
 from tinydb import TinyDB, Query
 from apscheduler.schedulers.background import BackgroundScheduler
 import random 
+import uuid
 
 # Load database
 db = TinyDB('./db.json')
 Prices = Query()
 Accounts = Query()
-Orders = Query()
+Trade = Query()
 
 # insert test data...
 prices =  [
@@ -29,6 +30,8 @@ prices_table = db.table('prices')
 prices_table.truncate() # Clear old price data (for test purposes)
 accounts_table = db.table('accounts')
 accounts_table.truncate() # Clear old user data (for test purposes)
+trades_table = db.table('trades')
+trades_table.truncate() # Clear old trades data (for test purposes)
 
 # Insert new data
 prices_table.insert_multiple(prices)
@@ -144,7 +147,7 @@ def post_accounts():
     if accounts_table.search(Accounts.login == account["login"]):
         return jsonify({
             "message": "account with same name already exists",
-        })
+        }), 500
     
     accounts_table.insert(account)
     return jsonify({
@@ -162,7 +165,7 @@ def put_accounts():
     if not accounts_table.search(Accounts.login == login):
         return jsonify({
             "message": "account not found",
-        })
+        }), 500
     
     accounts_table.update({'password': account['password'],
                            'enable': account['enable'],
@@ -182,13 +185,12 @@ def post_trades():
 
 
     accounts = accounts_table.search(Accounts.login == order['login'])
-    # Make sure login account exists.
+    # Make sure account exists.
     if len(accounts) < 1:
         return jsonify({
             "message": "account not found",
         })
     account = accounts[0]
-        
 
     if order['operation'] == 'buy':
         symbol = prices_table.get(Prices.symbol == order['symbol'])
@@ -207,53 +209,16 @@ def post_trades():
         accounts_table.update({'balance': new_balance},
                             Accounts.login == account['login'])
         account['balance'] = new_balance
+
+        order.update({'id': str(uuid.uuid4())}) # Check if id is unique.
+
+        trades_table.insert(order)
+
         return jsonify({
-            "message": "successfully updated account",
-            "account": account
+            "message": "successfully updated a trade",
+            "trade": order
         })
 
-        
-
     return jsonify({
-        "message": "successfully added a trade entry",
-        "data": order
+        "message": "no trades"
     })
-
-@app.route("/users/", methods=["PUT"])
-@token_required
-def update_user(current_user):
-    try:
-        user = request.json
-        if user.get("name"):
-            user = User().update(current_user["_id"], user["name"])
-            return jsonify({
-                "message": "successfully updated account",
-                "data": user
-            }), 201
-        return {
-            "message": "Invalid data, you can only update your account name!",
-            "data": None,
-            "error": "Bad Request"
-        }, 400
-    except Exception as e:
-        return jsonify({
-            "message": "failed to update account",
-            "error": str(e),
-            "data": None
-        }), 400
-
-@app.route("/users/", methods=["DELETE"])
-@token_required
-def disable_user(current_user):
-    try:
-        User().disable_account(current_user["_id"])
-        return jsonify({
-            "message": "successfully disabled acount",
-            "data": None
-        }), 204
-    except Exception as e:
-        return jsonify({
-            "message": "failed to disable account",
-            "error": str(e),
-            "data": None
-        }), 400
