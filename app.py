@@ -16,7 +16,7 @@ Prices = Query()
 Accounts = Query()
 Trade = Query()
 
-# insert test data...
+# Insert test pricing and user data
 prices =  [
     {'symbol': 'EURUSD', 'price': 1.04},
     {'symbol': 'BTCUSD', 'price': 24000}
@@ -67,7 +67,7 @@ swaggerui_blueprint = get_swaggerui_blueprint(
     SWAGGER_URL,
     API_URL,
     config={
-        'app_name': "Sample API",
+        'app_name': "Test exchange API",
         
     }
 )
@@ -177,7 +177,7 @@ def put_accounts():
     })
 
 @app.route("/trades/",methods=['POST'])
-#@token_required
+@token_required
 def post_trades():
     order = request.json
 
@@ -287,7 +287,7 @@ def post_trades():
 
 
 @app.route("/trades/close/<string:id>",methods=['POST'])
-#@token_required
+@token_required
 def post_trades_close(id):
 
     trades = trades_table.search(Trade.id == id)
@@ -306,20 +306,27 @@ def post_trades_close(id):
         })
     account = accounts[0]
 
-    print(trade)
+    # We are only interested in long positions.
     if trade['operation'] == 'buy':
         price = prices_table.get(Prices.symbol == trade['symbol'])
-        print(price)
         amount_sold = price['price']*trade['volume']
         new_balance = account['balance'] + amount_sold
+
+        # Update database entry for the user.
         accounts_table.update({'balance': new_balance},
                             Accounts.login == trade['login'])
 
-    # Remove trade entry from database for simplicity.
-    ok = trades_table.remove(Trade.id == id)
+        # Remove trade entry from database for simplicity.
+        ok = trades_table.remove(Trade.id == id)
 
+        return jsonify({
+                "message": "successfully closed a trade",
+                "trade": trade
+            })
+    
+    # With other operations than a long position ('buy') we can not 
+    # close the trade.
     return jsonify({
-            "message": "successfully closed a trade",
-            "trade": trade
+            "message": "no trade were closed",
         })
 
