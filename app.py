@@ -164,7 +164,7 @@ def put_accounts():
     if not accounts_table.search(Accounts.login == login):
         return jsonify({
             "message": "account was not found",
-        }), 500
+        }), 404
     
     accounts_table.update({'password': account['password'],
                            'enable': account['enable'],
