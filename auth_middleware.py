@@ -19,7 +19,7 @@ def token_required(f):
             data=jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
 
             # Make sure the token is for a manager.
-            if data['user_id'] != 'manager_id':
+            if data['user_id'] != 'manager':
                 return {
                     "message": "Invalid token",
                     "data": None,

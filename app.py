@@ -90,7 +90,7 @@ def get_version():
 def get_oauth2token():
     try:
         token = jwt.encode(
-            {"user_id": "manager_id"},
+            {"user_id": "manager"},
             app.config["SECRET_KEY"],
             algorithm="HS256"
         )
@@ -111,11 +111,11 @@ def get_symbols():
     return jsonify([
          {
             "symbol": "BTCUSD",
-            "description": "Bitcoin/usd symbol",
+            "description": "Bitcoin/Usd symbol",
          },
          {
             "symbol": "EURUSD",
-            "description": "Euro/usd symbol",
+            "description": "Euro/Usd symbol",
          },
     ])
 
@@ -135,6 +135,7 @@ def get_quotes(symbol):
 @token_required
 def get_accounts():
     accounts = db.table("accounts")
+    # Simply return all accounts
     return jsonify(accounts.all())
 
 @app.route("/accounts/",methods=['POST'])
@@ -144,12 +145,12 @@ def post_accounts():
     # Make sure unique login.
     if accounts_table.search(Accounts.login == account["login"]):
         return jsonify({
-            "message": "account with same name already exists",
+            "message": "account with same login already exists",
         }), 500
     
     accounts_table.insert(account)
     return jsonify({
-        "message": "successfully retrieved user profile",
+        "message": "successfully created user profile",
         "data": account
     })
 
@@ -180,7 +181,6 @@ def put_accounts():
 def post_trades():
     order = request.json
 
-
     accounts = accounts_table.search(Accounts.login == order['login'])
     # Make sure account exists.
     if len(accounts) < 1:
@@ -193,7 +193,7 @@ def post_trades():
 
     if order['operation'] == 'buy':
 
-        # Here we would take a 1% cut from the spread.
+        # Here we would take a cut from the 1% spread.
         order_size = order['volume']*symbol['price']*1.01
 
         # Check if there is enough balance on the account
@@ -201,33 +201,88 @@ def post_trades():
             return jsonify({
                 "message": "not enough balance",
             })
-        print(f"Bought {order_size} {order['symbol']}!!")
-
+        
         new_balance = account['balance']-order_size
         
         accounts_table.update({'balance': new_balance},
                             Accounts.login == account['login'])
-        account['balance'] = new_balance
+        
+        print(f"Bought {order['symbol']} for {order_size} usd!!")
 
         # Assign unique id. TODO: Check if id really is unique.
         order.update({'id': str(uuid.uuid4())})
 
+        # Add trade to an existing trade entry if it exists. Otherwise insert
+        # a new.
+        trades = trades_table.search((Trade.login == order['login']) & 
+                                     (Trade.symbol == order['symbol']))
+        # Make sure account exists.
+        if len(trades) > 0:
+            
+            trade = trades[0]
+
+            # Calculate the new volume
+            new_volume = order['volume']+trade['volume']
+
+            # Update the database
+            trades_table.update({'volume': new_volume},
+                (Trade.login == order['login']) & (Trade.symbol == order['symbol']))
+            
+            trade['volume'] = new_volume
+
+            return jsonify({
+                "message": f"successfully updated the {order['symbol']} trade",
+                "trade": trade
+            })
+
+        # Create new trade entry.
         trades_table.insert(order)
 
         return jsonify({
-            "message": "successfully updated a trade",
+            "message": "successfully created a new trade",
             "trade": order
         })
     elif order['operation'] == 'sell':
-        trades = trades_table.search((Trade.login == order['login']) & (Trade.symbol == order['symbol']))
+        trades = trades_table.search((Trade.login == order['login']) & 
+                                     (Trade.symbol == order['symbol']))
         if len(trades) < 1:
             return jsonify({
                 "message": "could not find any trades",
             })
-        print(trades)
+        trade = trades[0]
+
+        if trade['volume'] < order['volume']:
+            return jsonify({
+                "message": "can not sell more then you have",
+            })
+        
+        # Calculating the new volume
+        new_volume = trade['volume']-order['volume']
+
+        # Update the database
+        trades_table.update({'volume': new_volume},
+                            (Trade.login == trade['login']) & (Trade.symbol == order['symbol']))
+        
+        # We do not take a cut from a sale.
+        order_size = order['volume']*symbol['price']
+        
+        new_balance = account['balance']+order_size
+        
+        # Update database entry with new balance.
+        accounts_table.update({'balance': new_balance},
+                            Accounts.login == account['login'])
+        
+        print(f"Sold {order['symbol']} for {order_size} usd!!")
+
+        trade['volume'] = new_volume
+
+        return jsonify({
+            "message": "successfully updated a trade",
+            "trade": trade
+        })
 
     return jsonify({
-        "message": "no trade done"
+        "message": "no trade opened"
     })
 
 
@@ -238,7 +293,7 @@ def post_trades_close(id):
     trades = trades_table.search(Trade.id == id)
     if len(trades) < 1:
         return jsonify({
-            "message": "trade id not found",
+            "message": "trade could not be found",
         })
     trade = trades[0]
 
@@ -247,7 +302,7 @@ def post_trades_close(id):
     # Make sure account exists.
     if len(accounts) < 1:
         return jsonify({
-            "message": "account not found",
+            "message": "account could not be found",
         })
     account = accounts[0]
 
