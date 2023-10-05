@@ -5,6 +5,8 @@ environment. The server generates a test template database file (db.json) everyt
 with three users (name1, name2, name2) each with a different starting balance. Use GET '/accounts/' 
 to fetch them.
 
+Prices are randomized every second within the given price interval.
+
 Receive token from '/oauth/token' and import token though 'Authorize' as 'Bearer <token>'.
 
 I left out the endpoints '/symbols/ POST' and '/symbols/ PUT' in this example.
