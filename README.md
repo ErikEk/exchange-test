@@ -1,6 +1,6 @@
 # exchange-test
 
-Test exchange built with the tinydb database for portability. Would rather use a sql based database 
+Test exchange built with tinydb for portability. Would rather use a sql based database 
 in an non-assignment environment. The server generates a test template database file (db.json) everytime 
 it is restarted with three users (name1, name2, name3), each with a different starting balance denominated
 in dollars. 
