@@ -14,7 +14,3 @@ I left out the endpoints '/symbols/ POST' and '/symbols/ PUT' in this example.
 
 Run 'flask run' and access swagger on 'http://127.0.0.1:5000'. The endpoints shown in swagger contains 
 example data.
-
-I will be available to answer any questions at any time.
-
-// Erik Ek
